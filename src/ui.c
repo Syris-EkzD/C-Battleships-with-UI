@@ -94,24 +94,30 @@ void drawPickingGridSize(GamePhase *currentPhase, GridSize *currentGrid, Game *g
 
 void drawSetupGrid(GamePhase *currentPhase, Player *player, Game *game, Vector2 mouse) {
     Button btnBack = {{10, 10, 90, 50}, GRAY, LIGHTGRAY, "<- Back", BLACK, 20};
-    
-    if(UpdateButton(&btnBack, mouse)) {
-        *currentPhase = PHASE_GRIDSIZE;
-    }	
+    Button btnConfirm = {{325, 480, 110, 50}, GRAY, LIGHTGRAY, "Confirm", BLACK, 20};
     
     static char temporaryGrid[10][10];
     static bool initialized = false;
+    static int shipsPlaced = 0;
+    
+    if(UpdateButton(&btnBack, mouse)) {
+        *currentPhase = PHASE_GRIDSIZE;
+        initialized = false;
+    }	
     
     if (!initialized) {
         initGrid(temporaryGrid, &game->setup);
         initialized = true;
+        shipsPlaced = 0;
     }
     
     BeginDrawing();
     ClearBackground(RAYWHITE);
     
-    DrawText(player->name, 220, 50, 30, DARKBLUE);
     DrawButton(btnBack);
+    DrawText(player->name, 220, 50, 30, DARKBLUE);
+    DrawText(TextFormat("Ships placed: %d/%d", shipsPlaced, game->setup.NUM_SHIPS), 
+             50, 550, 20, DARKGRAY);
     
     // Draw the grid
     int cellSize = game->cell.size;
@@ -138,12 +144,17 @@ void drawSetupGrid(GamePhase *currentPhase, Player *player, Game *game, Vector2 
 	        if (CheckCollisionPointRec(mouse, cellRect) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
 	            if (temporaryGrid[row][col] == 'S') {
     				temporaryGrid[row][col] = ' ';
-				} else {
+    				shipsPlaced--;
+				} else if (shipsPlaced < game->setup.NUM_SHIPS) {
     				temporaryGrid[row][col] = 'S';
+    				shipsPlaced++;
 				}
 	        }
+	        
+	        if (shipsPlaced >= game->setup.NUM_SHIPS) {
+	        	DrawButton(btnConfirm);
+			}
 	
-	       
 	        Color color = (phase == CELL_NORMAL) ? LIGHTGRAY :
               (phase == CELL_HOVER) ? SKYBLUE : DARKBLUE;
 	                      
