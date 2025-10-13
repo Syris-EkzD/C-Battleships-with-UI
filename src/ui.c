@@ -23,38 +23,6 @@ void drawGameStateGameMenu(GameState *currentState, Vector2 mouse) {
     EndDrawing();
 }
 
-// Game screen
-void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMode *currentMode, GridSize *currentGrid, Game *game, Vector2 mouse) {
-    switch(*currentPhase) {
-    	case PHASE_GAMEMODE: 
-    		drawPickingGameMode(currentState, currentPhase, currentMode, mouse);
-    		break;
-    
-    	case PHASE_GRIDSIZE:
-    		drawPickingGridSize(currentPhase, currentGrid, mouse);
-    		break;
-    		
-    	case PHASE_SETUP: {
-    		static bool setupInitialized = false;
-
-		    if (!setupInitialized) {
-		        game->setup.currentGrid = *currentGrid;
-		        setGridDimensions(&game->setup);
-		        setupInitialized = true;  // only set once
-		    }
-		
-		    drawShipSetupPhase(game, &game->player1, currentPhase, mouse);
-		    drawShipSetupPhase(game, &game->player2, currentPhase, mouse);
-		
-		    // When phase changes away from setup, reset the flag
-		    if (*currentPhase != PHASE_SETUP) {
-		        setupInitialized = false;
-		    }
-		} break;
-    		
-	}
-}
-
 // Instructions screen
 void drawGameStateInstructions(GameState *currentState, Vector2 mouse) {
 	Button btnBack = {{10, 10, 90, 50}, GRAY, LIGHTGRAY, "<- Back", BLACK, 20};
@@ -91,16 +59,27 @@ void drawPickingGameMode(GameState *currentState, GamePhase *currentPhase, GameM
     EndDrawing();
 }
 
-void drawPickingGridSize(GamePhase *currentPhase, GridSize *currentGrid, Vector2 mouse) {
+void drawPickingGridSize(GamePhase *currentPhase, GridSize *currentGrid, Game *game, Vector2 mouse) {
 	Button btnBack = {{10, 10, 90, 50}, GRAY, LIGHTGRAY, "<- Back", BLACK, 20};
 	Button btn5x5 = {{300, 200, 200, 50}, GRAY, LIGHTGRAY, "5x5", BLACK, 20};
     Button btn7x7 = {{300, 270, 200, 50}, GRAY, LIGHTGRAY, "7x7", BLACK, 20};
     Button btn10x10 = {{300, 340, 200, 50}, GRAY, LIGHTGRAY, "10x10", BLACK, 20};
     
-    if (UpdateButton(&btnBack, mouse)) *currentPhase = PHASE_GAMEMODE;
-	if (UpdateButton(&btn5x5, mouse)) *currentPhase = PHASE_SETUP, *currentGrid = GRID_5x5;
-	if (UpdateButton(&btn7x7, mouse)) *currentPhase = PHASE_SETUP, *currentGrid = GRID_7x7;
-	if (UpdateButton(&btn10x10, mouse)) *currentPhase = PHASE_SETUP, *currentGrid = GRID_10x10;
+    if (UpdateButton(&btnBack, mouse)) {
+		*currentPhase = PHASE_GAMEMODE;
+	} else if (UpdateButton(&btn5x5, mouse)) {
+		*currentPhase = PHASE_SETUP; 
+		*currentGrid = GRID_5x5; 
+		initializePlayers(game);
+	} else if (UpdateButton(&btn7x7, mouse)) {
+		*currentPhase = PHASE_SETUP; 
+		*currentGrid = GRID_7x7; 
+		initializePlayers(game);
+	} else if (UpdateButton(&btn10x10, mouse)) {
+		*currentPhase = PHASE_SETUP;
+		*currentGrid = GRID_10x10;
+		initializePlayers(game);
+	}
 	
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -116,7 +95,7 @@ void drawPickingGridSize(GamePhase *currentPhase, GridSize *currentGrid, Vector2
 void drawShipSetupPhase(Game *game, Player *player, GamePhase *currentPhase, Vector2 mouse) {
     static char tempGrid[10][10];
     static bool initialized = false;
-    static bool confirmPrompt = false;
+    static bool confirmPrompt = false;	
     static int shipsPlaced = 0; // number of ships placed so far
 
     // Initialize temporary grid
@@ -130,7 +109,7 @@ void drawShipSetupPhase(Game *game, Player *player, GamePhase *currentPhase, Vec
         initialized = true;
     }
 
-    int cellSize = game->setup.CELL_SIZE;
+    int cellSize = game->cell.size;
     int offsetX = game->setup.OFFSET_X;
     int offsetY = game->setup.OFFSET_Y;
 

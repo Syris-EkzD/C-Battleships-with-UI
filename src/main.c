@@ -11,6 +11,8 @@ int main(void) {
     GamePhase currentPhase = PHASE_GAMEMODE;
     GameMode currentMode = MODE_NONE;
     GridSize currentGrid = GRID_NONE;
+    PlayerSetupTurn currentTurn = TURN_PLAYER1;
+    Cell cell;
     Game game;
     
     char player1Grid[10][10], player2Grid[10][10]; // max size

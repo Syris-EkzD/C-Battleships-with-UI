@@ -1,15 +1,29 @@
 #include "../include/gameLogic.h"
-#include <stdio.h>
-#include <time.h>
-#include <stdlib.h>
 
-void setGridDimensions(Setup *setup) {
+
+void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMode *currentMode, GridSize *currentGrid, Game *game, Vector2 mouse) {
+    switch(*currentPhase) {
+    	case PHASE_GAMEMODE: 
+    		drawPickingGameMode(currentState, currentPhase, currentMode, mouse);
+    		break;
+    
+    	case PHASE_GRIDSIZE:
+    		drawPickingGridSize(currentPhase, currentGrid, game, mouse);
+    		break;
+    		
+    	case PHASE_SETUP: 
+			
+			break;	
+	}
+}
+
+void setGridDimensions(Setup *setup, Cell *cell) {
     switch (setup->currentGrid) {
     	case GRID_NONE:
     		setup->ROWS = 0;
             setup->COLS = 0;
             setup->NUM_SHIPS = 0;
-            setup->CELL_SIZE = 0;
+            cell->size = 0;
             setup->OFFSET_X = 0;
             setup->OFFSET_Y = 0;
             break;
@@ -18,7 +32,7 @@ void setGridDimensions(Setup *setup) {
             setup->ROWS = 5;
             setup->COLS = 5;
             setup->NUM_SHIPS = 3;
-            setup->CELL_SIZE = 60;
+            cell->size = 60;
             setup->OFFSET_X = 220;
             setup->OFFSET_Y = 150;
             break;
@@ -27,7 +41,7 @@ void setGridDimensions(Setup *setup) {
             setup->ROWS = 7;
             setup->COLS = 7;
             setup->NUM_SHIPS = 4;
-            setup->CELL_SIZE = 50;
+            cell->size = 50;
             setup->OFFSET_X = 180;
             setup->OFFSET_Y = 120;
             break;
@@ -36,7 +50,7 @@ void setGridDimensions(Setup *setup) {
             setup->ROWS = 10;
             setup->COLS = 10;
             setup->NUM_SHIPS = 5;
-            setup->CELL_SIZE = 40;
+            cell->size = 40;
             setup->OFFSET_X = 150;
             setup->OFFSET_Y = 100;
             break;
@@ -45,7 +59,7 @@ void setGridDimensions(Setup *setup) {
             setup->ROWS = 0;
             setup->COLS = 0;
             setup->NUM_SHIPS = 0;
-            setup->CELL_SIZE = 0;
+            cell->size = 0;
             setup->OFFSET_X = 0;
             setup->OFFSET_Y = 0;
             break;
@@ -61,7 +75,7 @@ void initGrid(char grid[][10], Setup *setup) {
 }
 
 void initializePlayers(Game *game) {
-    setGridDimensions(&game->setup); // sets ROWS, COLS, NUM_SHIPS
+    setGridDimensions(&game->setup, &game->cell); // sets ROWS, COLS, NUM_SHIPS
 
     initGrid(game->player1.grid, &game->setup);
     initGrid(game->player2.grid, &game->setup);
