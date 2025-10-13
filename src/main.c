@@ -11,14 +11,13 @@ int main(void) {
     GamePhase currentPhase = PHASE_GAMEMODE;
     GameMode currentMode = MODE_NONE;
     GridSize currentGrid = GRID_NONE;
-    PlayerSetupTurn currentTurn = TURN_PLAYER1;
     Cell cell;
+    Setup setup;
     Game game;
     
-    char player1Grid[10][10], player2Grid[10][10]; // max size
-	char player1Tracking[10][10], player2Tracking[10][10];
-	int player1Ships, player2Ships;
-
+	game.player1 = (Player){ "Player 1", {{' '}}, {{' '}}, 0 };
+	game.player2 = (Player){ "Player 2", {{' '}}, {{' '}}, 0 };
+    
     while (!WindowShouldClose() && currentState != STATE_EXIT) {
         Vector2 mouse = GetMousePosition();
         switch(currentState) {
@@ -27,7 +26,7 @@ int main(void) {
                 break;
                 
             case STATE_START_GAME:
-                gameStateStartGame(&currentState, &currentPhase, &currentMode, &currentGrid, &game, mouse);
+                gameStateStartGame(&currentState, &currentPhase, &currentMode, &currentGrid, &game.player1, &game, mouse);
                 break;
                 
             case STATE_INSTRUCTIONS:

@@ -1,7 +1,7 @@
 #include "../include/gameLogic.h"
 
 
-void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMode *currentMode, GridSize *currentGrid, Game *game, Vector2 mouse) {
+void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMode *currentMode, GridSize *currentGrid, Player *player, Game *game, Vector2 mouse) {
     switch(*currentPhase) {
     	case PHASE_GAMEMODE: 
     		drawPickingGameMode(currentState, currentPhase, currentMode, mouse);
@@ -12,13 +12,13 @@ void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMo
     		break;
     		
     	case PHASE_SETUP: 
-			
+			drawSetupGrid(currentPhase, game->player1, game, mouse);
 			break;	
 	}
 }
 
-void setGridDimensions(Setup *setup, Cell *cell) {
-    switch (setup->currentGrid) {
+void setGridDimensions(Setup *setup, Cell *cell, GridSize *currentGrid) {
+    switch (*currentGrid) {
     	case GRID_NONE:
     		setup->ROWS = 0;
             setup->COLS = 0;
@@ -74,8 +74,8 @@ void initGrid(char grid[][10], Setup *setup) {
     }
 }
 
-void initializePlayers(Game *game) {
-    setGridDimensions(&game->setup, &game->cell); // sets ROWS, COLS, NUM_SHIPS
+void initializePlayers(Game *game, GridSize *currentGrid) {
+    setGridDimensions(&game->setup, &game->cell, currentGrid); // sets ROWS, COLS, NUM_SHIPS
 
     initGrid(game->player1.grid, &game->setup);
     initGrid(game->player2.grid, &game->setup);

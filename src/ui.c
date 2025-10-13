@@ -70,15 +70,15 @@ void drawPickingGridSize(GamePhase *currentPhase, GridSize *currentGrid, Game *g
 	} else if (UpdateButton(&btn5x5, mouse)) {
 		*currentPhase = PHASE_SETUP; 
 		*currentGrid = GRID_5x5; 
-		initializePlayers(game);
+		initializePlayers(game, currentGrid);
 	} else if (UpdateButton(&btn7x7, mouse)) {
 		*currentPhase = PHASE_SETUP; 
 		*currentGrid = GRID_7x7; 
-		initializePlayers(game);
+		initializePlayers(game, currentGrid);
 	} else if (UpdateButton(&btn10x10, mouse)) {
 		*currentPhase = PHASE_SETUP;
 		*currentGrid = GRID_10x10;
-		initializePlayers(game);
+		initializePlayers(game, currentGrid);
 	}
 	
     BeginDrawing();
@@ -92,105 +92,68 @@ void drawPickingGridSize(GamePhase *currentPhase, GridSize *currentGrid, Game *g
 	EndDrawing();
 }
 
-void drawShipSetupPhase(Game *game, Player *player, GamePhase *currentPhase, Vector2 mouse) {
-    static char tempGrid[10][10];
+void drawSetupGrid(GamePhase *currentPhase, Player *player, Game *game, Vector2 mouse) {
+    Button btnBack = {{10, 10, 90, 50}, GRAY, LIGHTGRAY, "<- Back", BLACK, 20};
+    
+    if(UpdateButton(&btnBack, mouse)) {
+        *currentPhase = PHASE_GRIDSIZE;
+    }	
+    
+    static char temporaryGrid[10][10];
     static bool initialized = false;
-    static bool confirmPrompt = false;	
-    static int shipsPlaced = 0; // number of ships placed so far
-
-    // Initialize temporary grid
+    
     if (!initialized) {
-        for (int i = 0; i < game->setup.ROWS; i++) {
-            for (int j = 0; j < game->setup.COLS; j++) {
-                tempGrid[i][j] = ' ';
-            }
-        }
-        shipsPlaced = 0;
+        initGrid(temporaryGrid, &game->setup);
         initialized = true;
     }
-
+    
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+    
+    DrawText(player->name, 220, 50, 30, DARKBLUE);
+    DrawButton(btnBack);
+    
+    // Draw the grid
     int cellSize = game->cell.size;
     int offsetX = game->setup.OFFSET_X;
     int offsetY = game->setup.OFFSET_Y;
-
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
-
     
-    DrawText(
-    TextFormat("%s - Place Your Ships (%d/%d)",
-               (player == &game->player1) ? "Player 1" : "Player 2",
-               shipsPlaced, game->setup.NUM_SHIPS),
-    offsetX, offsetY - 60, 25, DARKBLUE
-	);
-             
-    
-
-    // --- Draw Grid ---
-    for (int i = 0; i < game->setup.ROWS; i++) {
-        for (int j = 0; j < game->setup.COLS; j++) {
-            Rectangle cell = { offsetX + j * cellSize, offsetY + i * cellSize, cellSize, cellSize };
-            Color color = (tempGrid[i][j] == 'S') ? DARKGRAY : LIGHTGRAY;
-
-            DrawRectangleRec(cell, color);
-            DrawRectangleLinesEx(cell, 1, BLACK);
-
-            // Handle clicks (only if not confirming yet)
-            if (!confirmPrompt && CheckCollisionPointRec(mouse, cell) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
-                if (tempGrid[i][j] == ' ' && shipsPlaced < game->setup.NUM_SHIPS) {
-                    tempGrid[i][j] = 'S';
-                    shipsPlaced++;
-                } 
-                else if (tempGrid[i][j] == 'S') {
-                    tempGrid[i][j] = ' ';
-                    shipsPlaced--;
-                }
-            }
-        }
-    }
-
-    // --- Show confirm button only when all ships are placed ---
-    if (shipsPlaced == game->setup.NUM_SHIPS) {
-        Rectangle confirmBtn = { offsetX, offsetY + game->setup.ROWS * cellSize + 40, 120, 40 };
-        DrawRectangleRec(confirmBtn, GRAY);
-        DrawText("Confirm", confirmBtn.x + 20, confirmBtn.y + 10, 20, BLACK);
-
-        if (CheckCollisionPointRec(mouse, confirmBtn) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
-            confirmPrompt = true;
-        }
-    }
-
-    // --- Confirm prompt logic ---
-    if (confirmPrompt) {
-        DrawRectangle(offsetX + 150, offsetY + 100, 300, 150, Fade(GRAY, 0.9f));
-        DrawText("Confirm placement?", offsetX + 170, offsetY + 120, 25, BLACK);
-
-        Rectangle yesBtn = { offsetX + 170, offsetY + 170, 100, 40 };
-        Rectangle noBtn = { offsetX + 300, offsetY + 170, 100, 40 };
-
-        DrawRectangleRec(yesBtn, GREEN);
-        DrawRectangleRec(noBtn, RED);
-        DrawText("YES", yesBtn.x + 25, yesBtn.y + 10, 20, BLACK);
-        DrawText("NO", noBtn.x + 30, noBtn.y + 10, 20, BLACK);
-
-        // YES = commit placements
-        if (CheckCollisionPointRec(mouse, yesBtn) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
-            for (int i = 0; i < game->setup.ROWS; i++) {
-                for (int j = 0; j < game->setup.COLS; j++) {
-                    player->grid[i][j] = tempGrid[i][j];
-                }
-            }
-
-            confirmPrompt = false;
-            initialized = false;
-            *currentPhase = PHASE_GAMEPLAY;
-        }
-        // NO = cancel confirmation
-        else if (CheckCollisionPointRec(mouse, noBtn) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
-            confirmPrompt = false;
-        }
-    }
-
+    for (int row = 0; row < game->setup.ROWS; row++) {
+	    for (int col = 0; col < game->setup.COLS; col++) {
+	        Rectangle cellRect = { (float)(offsetX + col * cellSize), 
+								   (float)(offsetY + row * cellSize), 
+								   (float)cellSize, 
+								   (float)cellSize };
+			
+			CellPhase phase;
+			if (temporaryGrid[row][col] == 'S') {
+				phase = CELL_CLICKED;
+			} else if (CheckCollisionPointRec(mouse, cellRect)) {
+				phase = CELL_HOVER;
+			} else {
+				phase = CELL_NORMAL;
+			}
+			
+	        // Click detection (toggle)
+	        if (CheckCollisionPointRec(mouse, cellRect) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+	            if (temporaryGrid[row][col] == 'S') {
+    				temporaryGrid[row][col] = ' ';
+				} else {
+    				temporaryGrid[row][col] = 'S';
+				}
+	        }
+	
+	       
+	        Color color = (phase == CELL_NORMAL) ? LIGHTGRAY :
+              (phase == CELL_HOVER) ? SKYBLUE : DARKBLUE;
+	                      
+	        DrawRectangleRec(cellRect, color);
+	        DrawRectangleLines(cellRect.x, cellRect.y, cellRect.width, cellRect.height, BLACK);
+	    }
+	}
     EndDrawing();
 }
+
+
+
 

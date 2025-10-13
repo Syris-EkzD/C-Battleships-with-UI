@@ -31,11 +31,6 @@ typedef enum {
 } GridSize;
 
 typedef enum {
-    TURN_PLAYER1,
-    TURN_PLAYER2
-} PlayerSetupTurn;
-
-typedef enum {
     CELL_NORMAL,
     CELL_HOVER,
     CELL_CLICKED
@@ -48,7 +43,6 @@ typedef struct {
 } Cell;
 
 typedef struct {
-	GridSize currentGrid;
 	int ROWS;
 	int COLS;
 	int NUM_SHIPS;
@@ -57,6 +51,7 @@ typedef struct {
 } Setup;
 
 typedef struct {
+	char name[50];
 	char grid[10][10];
 	char tracking[10][10];
 	int ships;	
@@ -69,9 +64,9 @@ typedef struct {
 	Cell cell;
 } Game;
 
-void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMode *currentMode, GridSize *currentGrid, Game *game, Vector2 mouse);
-void setGridDimensions(Setup *setup, Cell *cell);
+void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMode *currentMode, GridSize *currentGrid, Player *player, Game *game, Vector2 mouse);
+void setGridDimensions(Setup *setup, Cell *cell, GridSize *currentGrid);
 void initGrid(char grid[][10], Setup *setup);
-void initializePlayers(Game *game);
+void initializePlayers(Game *game, GridSize *currentGrid);
 
 #endif
