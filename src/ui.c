@@ -1,4 +1,5 @@
 #include "../include/ui.h"
+#include <string.h>
 
 // Menu screen
 void drawGameStateGameMenu(GameState *currentState, Vector2 mouse) {
@@ -68,15 +69,15 @@ void drawPickingGridSize(GamePhase *currentPhase, GridSize *currentGrid, Game *g
     if (UpdateButton(&btnBack, mouse)) {
 		*currentPhase = PHASE_GAMEMODE;
 	} else if (UpdateButton(&btn5x5, mouse)) {
-		*currentPhase = PHASE_SETUP; 
+		*currentPhase = PHASE_SETUPPLAYER1; 
 		*currentGrid = GRID_5x5; 
 		initializePlayers(game, currentGrid);
 	} else if (UpdateButton(&btn7x7, mouse)) {
-		*currentPhase = PHASE_SETUP; 
+		*currentPhase = PHASE_SETUPPLAYER1;
 		*currentGrid = GRID_7x7; 
 		initializePlayers(game, currentGrid);
 	} else if (UpdateButton(&btn10x10, mouse)) {
-		*currentPhase = PHASE_SETUP;
+		*currentPhase = PHASE_SETUPPLAYER1;
 		*currentGrid = GRID_10x10;
 		initializePlayers(game, currentGrid);
 	}
@@ -100,10 +101,22 @@ void drawSetupGrid(GamePhase *currentPhase, Player *player, Game *game, Vector2 
     static bool initialized = false;
     static int shipsPlaced = 0;
     
-    if(UpdateButton(&btnBack, mouse)) {
+    if (UpdateButton(&btnBack, mouse)) {
         *currentPhase = PHASE_GRIDSIZE;
         initialized = false;
     }	
+    
+    if (UpdateButton(&btnConfirm, mouse)) {
+	    memcpy(player->grid, temporaryGrid, sizeof(temporaryGrid));
+	    if (player == &game->player1) {
+	        *currentPhase = PHASE_SETUPPAUSE;
+	    } else {
+	    	game->currentPlayer = &game->player1;
+			game->opponent = &game->player2;
+	        *currentPhase = PHASE_GAMEPLAY;
+	    }
+	    initialized = false;
+	}
     
     if (!initialized) {
         initGrid(temporaryGrid, &game->setup);
@@ -165,6 +178,125 @@ void drawSetupGrid(GamePhase *currentPhase, Player *player, Game *game, Vector2 
     EndDrawing();
 }
 
+void drawSetupPause(GamePhase *currentPhase, Vector2 mouse) {
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    DrawText("Player 1 has finished setting up their ships!", 150, 250, 25, DARKBLUE);
+    DrawText("Pass the computer to Player 2", 150, 300, 20, GRAY);
+    DrawText("Press ENTER or click to continue...", 150, 340, 20, DARKGRAY);
+
+    EndDrawing();
+
+    // Wait for player input to continue
+    if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        *currentPhase = PHASE_SETUPPLAYER2;
+    }
+}
+
+void drawShootingPhase(GamePhase *currentPhase, Player *currentPlayer, Player *opponent, Game *game, Vector2 mouse) {
+    Button btnConfirm = {{325, 480, 110, 50}, GRAY, LIGHTGRAY, "Confirm", BLACK, 20};
+
+    static bool initialized = false;
+    static bool shotMade = false;
+    static int targetRow = -1, targetCol = -1;
+
+    if (!initialized) {
+        shotMade = false;
+        targetRow = targetCol = -1;
+        initialized = true;
+    }
+
+    int cellSize = game->cell.size;
+    int offsetX = game->setup.OFFSET_X;
+    int offsetY = game->setup.OFFSET_Y;
+
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    DrawText(TextFormat("%s's Turn", currentPlayer->name), 250, 50, 30, DARKBLUE);
+    DrawText("Click a cell to shoot", 250, 90, 20, DARKGRAY);
+
+    // Draw current player's tracking grid
+    for (int row = 0; row < game->setup.ROWS; row++) {
+        for (int col = 0; col < game->setup.COLS; col++) {
+            Rectangle cellRect = {
+                (float)(offsetX + col * cellSize),
+                (float)(offsetY + row * cellSize),
+                (float)cellSize,
+                (float)cellSize
+            };
+
+            Cell cell = { cellSize, true, CELL_NORMAL };
+            char val = currentPlayer->tracking[row][col];
+
+            // Determine the visual state of the cell
+            if (val == 'X') {
+                cell.phase = CELL_HIT;
+                cell.isClickable = false;
+            } else if (val == 'O') {
+                cell.phase = CELL_MISS;
+                cell.isClickable = false;
+            } else {
+                // Allow selection / re-selection before confirmation
+                if (CheckCollisionPointRec(mouse, cellRect)) {
+                    cell.phase = CELL_HOVER;
+                    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+                        // Allow reselecting another cell before confirm
+                        targetRow = row;
+                        targetCol = col;
+                        shotMade = true;
+                    }
+                }
+
+                // Highlight currently selected cell
+                if (shotMade && row == targetRow && col == targetCol) {
+                    cell.phase = CELL_CLICKED;
+                }
+            }
+
+            // Choose color based on phase
+            Color color;
+            switch (cell.phase) {
+                case CELL_HIT:     color = RED; break;
+                case CELL_MISS:    color = DARKGRAY; break;
+                case CELL_CLICKED: color = YELLOW; break;
+                case CELL_HOVER:   color = SKYBLUE; break;
+                default:           color = LIGHTGRAY; break;
+            }
+
+            DrawRectangleRec(cellRect, color);
+            DrawRectangleLines(cellRect.x, cellRect.y, cellRect.width, cellRect.height, BLACK);
+
+            // Draw marks
+            if (cell.phase == CELL_HIT)
+                DrawText("X", cellRect.x + cellSize / 3, cellRect.y + cellSize / 5, 30, BLACK);
+            else if (cell.phase == CELL_MISS)
+                DrawText("O", cellRect.x + cellSize / 3, cellRect.y + cellSize / 5, 30, BLACK);
+        }
+    }
+
+    // Show Confirm button after a cell is selected
+    if (shotMade && targetRow >= 0 && targetCol >= 0) {
+        DrawButton(btnConfirm);
+        if (UpdateButton(&btnConfirm, mouse)) {
+            // Apply the confirmed shot
+            if (opponent->grid[targetRow][targetCol] == 'S') {
+                opponent->grid[targetRow][targetCol] = 'X';
+                currentPlayer->tracking[targetRow][targetCol] = 'X';
+            } else {
+                opponent->grid[targetRow][targetCol] = 'O';
+                currentPlayer->tracking[targetRow][targetCol] = 'O';
+            }
+
+            // Proceed to next phase (pause before swapping)
+            *currentPhase = PHASE_GAMEPLAYPAUSE;
+            initialized = false;
+        }
+    }
+
+    EndDrawing();
+}
 
 
 

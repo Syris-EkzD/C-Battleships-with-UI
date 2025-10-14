@@ -12,8 +12,11 @@ typedef enum {
 typedef enum {
 	PHASE_GAMEMODE,
 	PHASE_GRIDSIZE,
-	PHASE_SETUP,
+	PHASE_SETUPPLAYER1,
+	PHASE_SETUPPAUSE,
+	PHASE_SETUPPLAYER2,
 	PHASE_GAMEPLAY,
+	PHASE_GAMEPLAYPAUSE,
 	PHASE_GAMEOVER,
 } GamePhase;
 
@@ -33,7 +36,9 @@ typedef enum {
 typedef enum {
     CELL_NORMAL,
     CELL_HOVER,
-    CELL_CLICKED
+    CELL_CLICKED,
+    CELL_HIT,
+    CELL_MISS,
 } CellPhase;
 
 typedef struct {
@@ -60,6 +65,8 @@ typedef struct {
 typedef struct {
 	Player player1;
 	Player player2;
+	Player *currentPlayer;
+    Player *opponent;
 	Setup setup;
 	Cell cell;
 } Game;
@@ -68,5 +75,6 @@ void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMo
 void setGridDimensions(Setup *setup, Cell *cell, GridSize *currentGrid);
 void initGrid(char grid[][10], Setup *setup);
 void initializePlayers(Game *game, GridSize *currentGrid);
+bool hasLost(Player *p, Game *game);
 
 #endif

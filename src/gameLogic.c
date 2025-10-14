@@ -3,18 +3,62 @@
 
 void gameStateStartGame(GameState *currentState, GamePhase *currentPhase, GameMode *currentMode, GridSize *currentGrid, Player *player, Game *game, Vector2 mouse) {
     switch(*currentPhase) {
-    	case PHASE_GAMEMODE: 
-    		drawPickingGameMode(currentState, currentPhase, currentMode, mouse);
-    		break;
+        case PHASE_GAMEMODE: 
+            drawPickingGameMode(currentState, currentPhase, currentMode, mouse);
+            break;
     
-    	case PHASE_GRIDSIZE:
-    		drawPickingGridSize(currentPhase, currentGrid, game, mouse);
-    		break;
-    		
-    	case PHASE_SETUP: 
-			drawSetupGrid(currentPhase, game->player1, game, mouse);
-			break;	
-	}
+        case PHASE_GRIDSIZE:
+            drawPickingGridSize(currentPhase, currentGrid, game, mouse);
+            break;
+            
+        case PHASE_SETUPPLAYER1: 
+            drawSetupGrid(currentPhase, &game->player1, game, mouse);
+            break;  
+            
+        case PHASE_SETUPPAUSE:
+            drawSetupPause(currentPhase, mouse);
+            break;
+            
+        case PHASE_SETUPPLAYER2:
+            drawSetupGrid(currentPhase, &game->player2, game, mouse);
+            break;
+            
+        case PHASE_GAMEPLAY:
+            drawShootingPhase(currentPhase, game->currentPlayer, game->opponent, game, mouse);
+            break;
+            
+        case PHASE_GAMEPLAYPAUSE: {
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+
+            DrawText(TextFormat("%s's Turn Ended!", game->currentPlayer->name), 200, 250, 25, DARKBLUE);
+            DrawText("Press ENTER to continue...", 200, 300, 20, GRAY);
+
+            EndDrawing();
+
+            if (IsKeyPressed(KEY_ENTER)) {
+                // Check if opponent lost
+                if (hasLost(game->opponent, game)) {
+                    *currentPhase = PHASE_GAMEOVER;
+                } else {
+                    // Swap turns
+                    Player *temp = game->currentPlayer;
+                    game->currentPlayer = game->opponent;
+                    game->opponent = temp;
+
+                    *currentPhase = PHASE_GAMEPLAY;
+                }
+            }
+            break;
+        }
+
+        case PHASE_GAMEOVER:
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            DrawText(TextFormat("Game Over! Winner: %s", game->currentPlayer->name), 200, 250, 30, RED);
+            EndDrawing();
+            break;
+    }
 }
 
 void setGridDimensions(Setup *setup, Cell *cell, GridSize *currentGrid) {
@@ -84,6 +128,16 @@ void initializePlayers(Game *game, GridSize *currentGrid) {
 
     game->player1.ships = game->setup.NUM_SHIPS;
     game->player2.ships = game->setup.NUM_SHIPS;
+}
+
+bool hasLost(Player *p, Game *game) {
+    for (int row = 0; row < game->setup.ROWS; row++) {
+        for (int col = 0; col < game->setup.COLS; col++) {
+            if (p->grid[row][col] == 'S')
+                return false; // Still has a ship
+        }
+    }
+    return true; // All ships destroyed
 }
 
 

@@ -10,5 +10,6 @@ void drawGameStateInstructions(GameState *currentState, Vector2 mouse);
 void drawPickingGameMode(GameState *currentState, GamePhase *currentPhase, GameMode *currentMode, Vector2 mouse);
 void drawPickingGridSize(GamePhase *currentPhase, GridSize *currentGrid, Game *game, Vector2 mouse);
 void drawSetupGrid(GamePhase *currentPhase, Player *player, Game *game, Vector2 mouse);
-
+void drawSetupPause(GamePhase *currentPhase, Vector2 mouse);
+void drawShootingPhase(GamePhase *currentPhase, Player *currentPlayer, Player *opponent, Game *game, Vector2 mouse);
 #endif
